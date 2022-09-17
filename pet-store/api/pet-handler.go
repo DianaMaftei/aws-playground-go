@@ -2,12 +2,13 @@ package api
 
 import (
 	"encoding/json"
-	"errors"
+	"fmt"
 	"github.com/gorilla/mux"
 	"io"
 	"net/http"
 	"pet-store/database"
 	"pet-store/model"
+	"pet-store/service"
 	"strconv"
 )
 
@@ -15,10 +16,12 @@ func CreatePet(w http.ResponseWriter, r *http.Request) {
 	reqBody, _ := io.ReadAll(r.Body)
 	var pet model.Pet
 	err := json.Unmarshal(reqBody, &pet)
-	handleError(w, err, "Invalid Request Body", http.StatusBadRequest)
+	if handleError(w, err, "invalid request body", http.StatusBadRequest) {
+		return
+	}
 
 	pet, err = database.CreatePet(pet)
-	if handleError(w, err, "Unable to save pet", http.StatusInternalServerError) {
+	if handleError(w, err, "unable to save pet", http.StatusInternalServerError) {
 		return
 	}
 	json.NewEncoder(w).Encode(pet)
@@ -28,10 +31,12 @@ func UpdatePet(w http.ResponseWriter, r *http.Request) {
 	reqBody, _ := io.ReadAll(r.Body)
 	var pet model.Pet
 	err := json.Unmarshal(reqBody, &pet)
-	handleError(w, err, "Invalid Request Body", http.StatusBadRequest)
+	if handleError(w, err, "invalid request body", http.StatusBadRequest) {
+		return
+	}
 
 	pet, err = database.UpdatePet(pet)
-	if handleError(w, err, "Unable to update pet", http.StatusInternalServerError) {
+	if handleError(w, err, "unable to update pet", http.StatusInternalServerError) {
 		return
 	}
 	json.NewEncoder(w).Encode(pet)
@@ -41,12 +46,12 @@ func FindPetsByStatus(w http.ResponseWriter, r *http.Request) {
 	status := getRequestParam(r, "status")
 	petStatus := model.PetStatus(status)
 	err := validatePetStatus(petStatus)
-	if handleError(w, err, "Invalid pet status supplied", http.StatusBadRequest) {
+	if handleError(w, err, "invalid pet status supplied", http.StatusBadRequest) {
 		return
 	}
 
 	pets, err := database.FindPetsByStatus(petStatus)
-	if handleError(w, err, "Unable to fetch pets by status", http.StatusInternalServerError) {
+	if handleError(w, err, "unable to fetch pets by status", http.StatusInternalServerError) {
 		return
 	}
 	json.NewEncoder(w).Encode(pets)
@@ -55,14 +60,12 @@ func FindPetsByStatus(w http.ResponseWriter, r *http.Request) {
 func FindPetById(w http.ResponseWriter, r *http.Request) {
 	key := getRequestParam(r, "petId")
 	id, err := strconv.Atoi(key)
-
-	if handleError(w, err, "Invalid ID supplied", http.StatusBadRequest) {
+	if handleError(w, err, "invalid petId supplied", http.StatusBadRequest) {
 		return
 	}
 
 	pet, err := database.FindPetByID(id)
-
-	if handleError(w, err, "Pet not found", http.StatusNotFound) {
+	if handleError(w, err, "pet not found", http.StatusNotFound) {
 		return
 	}
 
@@ -72,19 +75,39 @@ func FindPetById(w http.ResponseWriter, r *http.Request) {
 func DeletePet(w http.ResponseWriter, r *http.Request) {
 	key := getRequestParam(r, "petId")
 	id, err := strconv.Atoi(key)
-
-	if handleError(w, err, "Invalid ID supplied", http.StatusBadRequest) {
+	if handleError(w, err, "invalid petId supplied", http.StatusBadRequest) {
 		return
 	}
 
 	err = database.DeletePet(id)
-	handleError(w, err, "Pet not found", http.StatusNotFound)
+	handleError(w, err, "pet not found", http.StatusNotFound)
 }
 
-// TODO
-// update with PUT
-// findByStatus - GET
-// uploadImage
+func UploadPetImage(w http.ResponseWriter, r *http.Request) {
+	maxSize := int64(1024000) // allow only 1MB of file size
+	err := r.ParseMultipartForm(maxSize)
+	if handleError(w, err, fmt.Sprintf("image too large. Max Size: %v", maxSize), http.StatusBadRequest) {
+		return
+	}
+
+	file, fileHeader, err := r.FormFile("pet_image")
+	if handleError(w, err, fmt.Sprintf("invalid form file pet_image"), http.StatusBadRequest) {
+		return
+	}
+	defer file.Close()
+
+	session, err := service.ConnectToAws()
+	if handleError(w, err, fmt.Sprintf("could not upload file"), http.StatusInternalServerError) {
+		return
+	}
+
+	fileName, err := service.UploadFileToS3(session, file, fileHeader, "pictures")
+	if handleError(w, err, fmt.Sprintf("could not upload file"), http.StatusInternalServerError) {
+		return
+	}
+
+	fmt.Printf("Image uploaded successfully: %v", fileName)
+}
 
 func validatePetStatus(status model.PetStatus) error {
 	validStatuses := []model.PetStatus{model.Available, model.Pending, model.Sold}
@@ -93,7 +116,7 @@ func validatePetStatus(status model.PetStatus) error {
 			return nil
 		}
 	}
-	return errors.New("invalid pet status")
+	return fmt.Errorf("invalid pet status %s", status)
 }
 
 func getRequestParam(r *http.Request, param string) string {
@@ -104,6 +127,7 @@ func getRequestParam(r *http.Request, param string) string {
 
 func handleError(w http.ResponseWriter, err error, message string, status int) bool {
 	if err != nil {
+		fmt.Printf(message, err.Error())
 		w.Write([]byte(message))
 		w.WriteHeader(status)
 		return true

@@ -24,7 +24,6 @@ func Init() {
 
 	DBCon, err = sql.Open("mysql", dbSourceName)
 	if err != nil {
-		fmt.Println("Unable to open db connection,", err)
-		os.Exit(1)
+		panic("Unable to open db connection")
 	}
 }

@@ -16,6 +16,7 @@ func GetRouter() *mux.Router {
 	router.HandleFunc("/pet/{petId}", UpdatePet).Methods("PUT")
 	router.HandleFunc("/pet/{petId}", DeletePet).Methods("DELETE")
 	router.HandleFunc("/pet/{petId}", FindPetById).Methods("GET")
+	router.HandleFunc("/pet/{petId}/uploadImage", UploadPetImage).Methods("POST")
 
 	// STORE
 

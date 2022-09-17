@@ -13,15 +13,14 @@ import (
 func TestMain(m *testing.M) {
 	err := godotenv.Load("../test.env")
 	if err != nil {
-		fmt.Println("Unable to load .env file")
-		os.Exit(1)
+		panic(fmt.Errorf("unable to load .env file: %w", err))
 	}
 
 	ctx := context.Background()
 
 	seedDataPath, err := os.Getwd()
 	if err != nil {
-		panic(fmt.Sprintf("failed to get working directory: %v", err))
+		panic(fmt.Errorf("failed to get working directory: %w", err))
 	}
 	mountPath := seedDataPath + "/../scripts/"
 
@@ -46,7 +45,7 @@ func TestMain(m *testing.M) {
 		Started:          true,
 	})
 	if err != nil {
-		panic(fmt.Sprintf("failed to create a generic container: %v", err))
+		panic(fmt.Errorf("failed to create a generic container: %w", err))
 	}
 
 	defer container.Terminate(ctx)

@@ -1,25 +1,16 @@
 package main
 
 import (
-	"fmt"
 	"github.com/joho/godotenv"
 	"net/http"
-	"os"
 	"pet-store/api"
 	"pet-store/database"
 )
 
 func main() {
-	env := os.Getenv("ENV")
-	configFile := ".env"
-	if env == "LOCAL" {
-		configFile = "local.env"
-	}
-
-	err := godotenv.Load(configFile)
+	err := godotenv.Load(".env")
 	if err != nil {
-		fmt.Println("Unable to load .env file")
-		os.Exit(1)
+		panic("Unable to load environment variables file")
 	}
 	database.Init()
 	db := database.DBCon
