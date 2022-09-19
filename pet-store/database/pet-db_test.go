@@ -1,6 +1,7 @@
 package database
 
 import (
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"pet-store/model"
 	"testing"
@@ -10,15 +11,15 @@ func TestFindPetsByStatus(t *testing.T) {
 	pets, err := FindPetsByStatus(model.Available)
 
 	require.NoError(t, err)
-	require.NotEmpty(t, pets)
-	require.Equal(t, 1, len(pets))
+	assert.NotEmpty(t, pets)
+	assert.Equal(t, 1, len(pets))
 }
 
 func TestFindPetByID(t *testing.T) {
 	pet, err := FindPetByID(1)
 
 	require.NoError(t, err)
-	require.Equal(t, "Fluffy", pet.Name)
+	assert.Equal(t, "Fluffy", pet.Name)
 }
 
 func TestCreatePet(t *testing.T) {
@@ -26,7 +27,7 @@ func TestCreatePet(t *testing.T) {
 	pet, err := CreatePet(pet)
 
 	require.NoError(t, err)
-	require.Equal(t, 2, pet.Id)
+	assert.Equal(t, 2, pet.Id)
 }
 
 func TestUpdatePet(t *testing.T) {
@@ -37,7 +38,7 @@ func TestUpdatePet(t *testing.T) {
 
 	pet, err = FindPetByID(1)
 	require.NoError(t, err)
-	require.Equal(t, model.Sold, pet.Status)
+	assert.Equal(t, model.Sold, pet.Status)
 }
 
 func TestDeletePet(t *testing.T) {
@@ -47,6 +48,6 @@ func TestDeletePet(t *testing.T) {
 
 	pet, err := FindPetByID(1)
 
-	require.Error(t, err)
-	require.Empty(t, pet)
+	assert.Error(t, err)
+	assert.Empty(t, pet)
 }

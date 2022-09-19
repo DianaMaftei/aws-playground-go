@@ -1,0 +1,15 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: 'AWS::Serverless-2016-10-31'
+Description: An AWS Lambda application that creates thumbnails of uploaded images.
+Resources:
+  function:
+    Type: AWS::Serverless::Function
+    Properties:
+      Handler: main
+      Runtime: go1.x
+      CodeUri: function/.
+      Description: Create thumbnails of uploaded images
+      Timeout: 5
+      Policies:
+        - AmazonS3FullAccess
+        - AWSLambdaBasicExecutionRole
